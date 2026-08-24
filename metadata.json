@@ -1,0 +1,8 @@
+{
+  "name": "Trade AO - Signal Center & Binance Autotrading",
+  "description": "Plataforma de trading Trade AO com Signal Center técnico (RSI, EMA, Bollinger, ATR), autotrading não-custodial Binance, Risk Manager com Circuit Breaker, Trade Monitor em tempo real, Histórico/Analytics isolado, Multiuser com Isolamento Estrito de Dados, Banco de Dados Relacional SQLite ACID, Execução Contínua 24/7 (Systemd, Virtualenv, PID Lock Anti-Duplicação, Rotação de Logs e Recuperação Automática de Jobs Persistidos Pós-Restart), Trava Mandatória de Trading Real (TRADING_MODE=paper padrão), Suíte Completa de Qualidade (QA & Tests), FASE 21 Controlled Live Trading e FASE 22 First Live Order Validation (Checklist Pré-Voo de 11 Guardrails, Trava Mutex de Posição Única, Autorização Manual com Frase Explícita, Zero Retry e Auditoria com Zero Segredos).",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

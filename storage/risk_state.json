@@ -1,0 +1,29 @@
+{
+  "7886049873": {
+    "settings": {
+      "risk_per_trade_pct": 1,
+      "max_daily_loss_pct": 3,
+      "max_open_positions": 2,
+      "allowed_pairs": [
+        "BTC/USDT",
+        "ETH/USDT",
+        "SOL/USDT",
+        "BNB/USDT"
+      ],
+      "mandatory_stop_loss": true,
+      "min_risk_reward_ratio": 1.5,
+      "loss_cooldown_minutes": 15
+    },
+    "daily_stats": {
+      "date": "2026-08-19",
+      "total_pnl_usd": -14.94,
+      "total_pnl_pct": 0,
+      "trades_count": 2,
+      "losses_count": 1,
+      "wins_count": 1
+    },
+    "last_loss_timestamp": 1787162350823,
+    "autotrade_paused": false,
+    "pause_reason": null
+  }
+}

@@ -1,0 +1,28 @@
+[Unit]
+Description=Trade AO Telegram Bot Daemon (24/7 Execution & Signal Engine)
+After=network.target tradeao-engine.service
+Wants=tradeao-engine.service
+
+[Service]
+Type=simple
+User=tradeao
+Group=tradeao
+WorkingDirectory=/opt/tradeao
+Environment="PATH=/opt/tradeao/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin"
+EnvironmentFile=-/opt/tradeao/.env
+ExecStart=/opt/tradeao/venv/bin/python bot.py
+Restart=always
+RestartSec=5s
+KillMode=process
+TimeoutStopSec=20s
+StandardOutput=append:/opt/tradeao/logs/tradeao_bot.log
+StandardError=append:/opt/tradeao/logs/tradeao_bot.log
+
+# Security & Sandboxing Hardening
+ProtectSystem=full
+ProtectHome=read-only
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

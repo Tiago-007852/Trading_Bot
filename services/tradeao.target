@@ -1,0 +1,7 @@
+[Unit]
+Description=Trade AO 24/7 Full Stack Trading Stack
+Wants=tradeao-engine.service tradeao-bot.service
+After=tradeao-engine.service tradeao-bot.service
+
+[Install]
+WantedBy=multi-user.target

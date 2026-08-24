@@ -1,0 +1,35 @@
+# Environment & Secrets
+.env
+.env.local
+.env.*.local
+*.env
+
+# Logs
+*.log
+bot.log
+logs/
+*.pid
+*.lock
+*.sqlite-wal
+*.sqlite-shm
+
+# Python artifacts
+venv/
+.venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Node & Build artifacts
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Editor & OS files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

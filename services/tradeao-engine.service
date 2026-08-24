@@ -1,0 +1,28 @@
+[Unit]
+Description=Trade AO Server & SQLite Persistence Engine (24/7 Trading Daemon)
+After=network.target
+
+[Service]
+Type=simple
+User=tradeao
+Group=tradeao
+WorkingDirectory=/opt/tradeao
+Environment="NODE_ENV=production"
+Environment="PORT=3000"
+EnvironmentFile=-/opt/tradeao/.env
+ExecStart=/usr/bin/node dist/server.cjs
+Restart=always
+RestartSec=5s
+KillMode=process
+TimeoutStopSec=25s
+StandardOutput=append:/opt/tradeao/logs/tradeao_server.log
+StandardError=append:/opt/tradeao/logs/tradeao_server.log
+
+# Memory Limits and Sandboxing
+MemoryMax=1G
+ProtectSystem=full
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
