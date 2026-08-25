@@ -1,621 +1,73 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Navbar } from './components/Navbar';
-import { LivePriceTicker } from './components/LivePriceTicker';
-import { CandleChart } from './components/CandleChart';
-import { SignalsTerminal } from './components/SignalsTerminal';
-import { TradingConsole } from './components/TradingConsole';
-import { TelegramBotSimulator } from './components/TelegramBotSimulator';
-import { AccountModal } from './components/AccountModal';
-import { AffiliateBanner } from './components/AffiliateBanner';
-import { RiskManagerModal } from './components/RiskManagerModal';
-import { RiskConfirmationModal } from './components/RiskConfirmationModal';
-import { ExecutionEngineModal } from './components/ExecutionEngineModal';
-import { TradeMonitorModal } from './components/TradeMonitorModal';
-import { UserAnalyticsDashboard } from './components/UserAnalyticsDashboard';
-import { PaperTradingModal } from './components/PaperTradingModal';
-import { MultiUserManagerModal } from './components/MultiUserManagerModal';
-import { DatabasePersistenceModal } from './components/DatabasePersistenceModal';
-import { Daemon247Modal } from './components/Daemon247Modal';
-import { TestRunnerModal } from './components/TestRunnerModal';
-import { UserProfile, CryptoTicker, CandleData, IndicatorsData, SignalItem, ActiveTrade } from './types';
+import React, { useMemo, useState } from 'react';
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import './index.css';
+
+type Page = 'landing' | 'login' | 'register' | 'dashboard' | 'signals' | 'trading' | 'autotrade' | 'history' | 'settings' | 'billing' | 'admin';
+
+const plans = [
+  { name: 'Grátis', price: '7 dias trial', cta: 'Testar grátis', features: ['Paper trading', 'Sinais básicos', 'Binance testnet'] },
+  { name: 'Basic', price: '15.000 Kz/mês', cta: 'Assinar Basic', features: ['Signal Center', 'Trading manual', 'Risk Manager 1%'] },
+  { name: 'Pro', price: '45.000 Kz/mês', cta: 'Assinar Pro', featured: true, features: ['Autotrading', 'Analytics avançado', 'Score mínimo configurável'] },
+  { name: 'Enterprise', price: '120.000 Kz/mês', cta: 'Falar com suporte', features: ['Multi-conta', 'Suporte premium', 'Relatórios personalizados'] },
+];
+const signals = [
+  { pair: 'BTC/USDT', side: 'LONG', entry: 64200, sl: 62800, tp: 71200, score: 88, tf: '4h' },
+  { pair: 'ETH/USDT', side: 'LONG', entry: 3180, sl: 3090, tp: 3630, score: 76, tf: '1h' },
+  { pair: 'SOL/USDT', side: 'SHORT', entry: 146, sl: 151, tp: 121, score: 72, tf: '15m' },
+];
+const equity = Array.from({ length: 14 }, (_, i) => ({ day: `${i + 1}`, value: 2000 + i * 155 + Math.sin(i) * 120 }));
+const pnl = [{ name: 'WIN', value: 68 }, { name: 'LOSS', value: 32 }];
+
+function money(value: number) { return `${Math.round(value).toLocaleString('pt-AO').replace(/,/g, '.')} USDT`; }
+function Kpi({ label, value, accent = 'text-emerald-300' }: { label: string; value: string; accent?: string }) { return <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5"><p className="text-sm text-slate-400">{label}</p><strong className={`mt-2 block text-2xl ${accent}`}>{value}</strong></div>; }
+function Button({ children, onClick, soft = false }: { children: React.ReactNode; onClick?: () => void; soft?: boolean }) { return <button onClick={onClick} className={`rounded-xl px-4 py-2 font-semibold transition ${soft ? 'border border-white/10 bg-white/5 text-slate-100 hover:bg-white/10' : 'bg-emerald-400 text-slate-950 hover:bg-emerald-300'}`}>{children}</button>; }
 
 export default function App() {
-  const [activeUserId, setActiveUserId] = useState<string>(() => {
-    return localStorage.getItem('tradeao_active_user') || '7886049873';
-  });
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [activeView, setActiveView] = useState<'trading' | 'analytics'>('trading');
-  const [currentPar, setCurrentPar] = useState<string>('BTC/USDT');
-  const [interval, setInterval] = useState<string>('15m');
-  const [tickerData, setTickerData] = useState<Record<string, CryptoTicker | null>>({});
-  const [candles, setCandles] = useState<CandleData[]>([]);
-  const [indicators, setIndicators] = useState<IndicatorsData>({
-    rsi: 50,
-    ema9: null,
-    ema21: null,
-    ema50: null,
-    bbUpper: null,
-    bbMiddle: null,
-    bbLower: null,
-    atr: null,
-  });
+  const [page, setPage] = useState<Page>('landing');
+  const [minScore, setMinScore] = useState(70);
+  const visibleSignals = useMemo(() => signals.filter((signal) => signal.score >= minScore), [minScore]);
+  const nav: Page[] = ['dashboard', 'signals', 'trading', 'autotrade', 'history', 'settings', 'billing', 'admin'];
 
-  const [signals, setSignals] = useState<SignalItem[]>([]);
-  const [signalStats, setSignalStats] = useState({
-    total: 0,
-    acertos: 0,
-    derrotas: 0,
-    winRatePct: null as number | null,
-    pendentes: 0,
-  });
+  return <div className="min-h-screen bg-slate-950 text-slate-100">
+    <header className="sticky top-0 z-20 border-b border-white/10 bg-slate-950/85 backdrop-blur">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
+        <button onClick={() => setPage('landing')} className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-400 font-black text-slate-950">AO</span><span className="text-xl font-bold">Trade AO</span></button>
+        <nav className="hidden gap-2 lg:flex">{nav.map((item) => <button key={item} onClick={() => setPage(item)} className={`rounded-lg px-3 py-2 text-sm capitalize ${page === item ? 'bg-emerald-400 text-slate-950' : 'text-slate-300 hover:bg-white/10'}`}>{item}</button>)}</nav>
+        <div className="flex gap-2"><Button soft onClick={() => setPage('login')}>Entrar</Button><Button onClick={() => setPage('register')}>Criar conta</Button></div>
+      </div>
+    </header>
 
-  const [activeTrade, setActiveTrade] = useState<ActiveTrade | null>(null);
-  const [activeTradesCount, setActiveTradesCount] = useState<number>(0);
-  const [generatingSignal, setGeneratingSignal] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
+    <main className="mx-auto max-w-7xl px-4 py-10">
+      {page === 'landing' && <section className="space-y-16">
+        <div className="grid items-center gap-10 py-12 lg:grid-cols-[1.1fr_.9fr]">
+          <div><p className="mb-4 text-emerald-300">Plataforma SaaS para traders angolanos</p><h1 className="text-5xl font-black tracking-tight md:text-7xl">Trade AO — trading inteligente para Angolanos</h1><p className="mt-6 max-w-2xl text-lg text-slate-300">Conecta a tua Binance e deixa a inteligência de mercado trabalhar por ti, com sinais, risk manager, analytics e pagamentos em Kwanza via Multicaixa Express ou cartões.</p><div className="mt-8 flex flex-wrap gap-3"><Button onClick={() => setPage('register')}>Testar grátis 7 dias</Button><Button soft onClick={() => setPage('billing')}>Ver planos</Button></div></div>
+          <div className="rounded-3xl border border-emerald-400/20 bg-gradient-to-br from-emerald-400/10 to-slate-900 p-6 shadow-2xl shadow-emerald-950"><ResponsiveContainer width="100%" height={320}><AreaChart data={equity}><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#34d399" stopOpacity={0.8}/><stop offset="95%" stopColor="#34d399" stopOpacity={0}/></linearGradient></defs><XAxis dataKey="day" stroke="#94a3b8"/><YAxis stroke="#94a3b8"/><Tooltip/><Area type="monotone" dataKey="value" stroke="#34d399" fill="url(#g)"/></AreaChart></ResponsiveContainer></div>
+        </div>
+        <div className="grid gap-4 md:grid-cols-3">{['Conecta a tua Binance em testnet ou live', 'Analisa sinais com RSI, EMA, Bollinger, MACD e volume', 'Trade com SL obrigatório, RR mínimo e circuit breaker'].map((text, i) => <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6" key={text}><span className="text-emerald-300">0{i + 1}</span><h3 className="mt-3 text-xl font-bold">{text}</h3></div>)}</div>
+        <PlanGrid setPage={setPage} />
+        <footer className="border-t border-white/10 py-8 text-slate-400">Junte-se a +1.248 traders angolanos • Suporte por WhatsApp e email • Domínio recomendado: tradeao.co.ao</footer>
+      </section>}
 
-  // Modals & Panels
-  const [isTelegramOpen, setIsTelegramOpen] = useState(false);
-  const [isAccountOpen, setIsAccountOpen] = useState(false);
-  const [isDepositOpen, setIsDepositOpen] = useState(false);
-  const [isRiskManagerOpen, setIsRiskManagerOpen] = useState(false);
-  const [isRiskConfirmationOpen, setIsRiskConfirmationOpen] = useState(false);
-  const [isExecutionEngineOpen, setIsExecutionEngineOpen] = useState(false);
-  const [isTradeMonitorOpen, setIsTradeMonitorOpen] = useState(false);
-  const [isPaperTradingOpen, setIsPaperTradingOpen] = useState(false);
-  const [isMultiUserOpen, setIsMultiUserOpen] = useState(false);
-  const [isDatabaseOpen, setIsDatabaseOpen] = useState(false);
-  const [isDaemonOpen, setIsDaemonOpen] = useState(false);
-  const [isTestRunnerOpen, setIsTestRunnerOpen] = useState(false);
-
-  // Fetch Active Monitored Trades Count
-  const fetchMonitorCount = useCallback(async () => {
-    try {
-      const res = await fetch('/api/monitor/active');
-      if (res.ok) {
-        const data = await res.json();
-        setActiveTradesCount(data.activeCount || 0);
-      }
-    } catch (e) {
-      // ignore
-    }
-  }, []);
-
-  // Fetch User
-  const fetchUser = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/user?userId=${activeUserId}`);
-      if (res.ok) {
-        const data = await res.json();
-        setUser(data.user);
-      }
-    } catch (e) {
-      console.error('Error fetching user:', e);
-    }
-  }, [activeUserId]);
-
-  // Fetch Tickers
-  const fetchTickers = useCallback(async () => {
-    const pairs = ['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'BNB/USDT'];
-    for (const par of pairs) {
-      try {
-        const res = await fetch(`/api/price?par=${encodeURIComponent(par)}`);
-        if (res.ok) {
-          const data: CryptoTicker = await res.json();
-          setTickerData((prev) => ({ ...prev, [par]: data }));
-        }
-      } catch (e) {
-        // ignore
-      }
-    }
-  }, []);
-
-  // Fetch Candles and Indicators for active pair
-  const fetchCandlesAndIndicators = useCallback(async () => {
-    try {
-      const res = await fetch(
-        `/api/candles?par=${encodeURIComponent(currentPar)}&interval=${interval}&limit=70`
-      );
-      if (res.ok) {
-        const data = await res.json();
-        setCandles(data.candles || []);
-        if (data.indicators) {
-          setIndicators(data.indicators);
-        }
-      }
-    } catch (e) {
-      console.error('Error fetching candles:', e);
-    }
-  }, [currentPar, interval]);
-
-  // Fetch Signals & Win Rate Stats
-  const fetchSignalsHistory = useCallback(async () => {
-    try {
-      const res = await fetch('/api/signals/history');
-      if (res.ok) {
-        const data = await res.json();
-        setSignals(data.history || []);
-        if (data.stats) {
-          setSignalStats(data.stats);
-        }
-      }
-    } catch (e) {
-      console.error('Error fetching signals:', e);
-    }
-  }, []);
-
-  // Initial load
-  useEffect(() => {
-    fetchUser();
-    fetchTickers();
-    fetchCandlesAndIndicators();
-    fetchSignalsHistory();
-    fetchMonitorCount();
-
-    const priceTimer = setInterval(() => {
-      fetchTickers();
-      fetchMonitorCount();
-    }, 4000);
-
-    const candleTimer = setInterval(() => {
-      fetchCandlesAndIndicators();
-    }, 10000);
-
-    return () => {
-      clearInterval(priceTimer);
-      clearInterval(candleTimer);
-    };
-  }, [fetchUser, fetchTickers, fetchCandlesAndIndicators, fetchSignalsHistory]);
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await Promise.all([
-      fetchUser(),
-      fetchTickers(),
-      fetchCandlesAndIndicators(),
-      fetchSignalsHistory(),
-    ]);
-    setTimeout(() => setRefreshing(false), 500);
-  };
-
-  // Generate Signal
-  const handleGenerateSignal = async () => {
-    setGeneratingSignal(true);
-    try {
-      const res = await fetch(`/api/signals/generate?par=${encodeURIComponent(currentPar)}`);
-      if (res.ok) {
-        await fetchSignalsHistory();
-      }
-    } finally {
-      setGeneratingSignal(false);
-    }
-  };
-
-  // Resolve Signal
-  const handleResolveSignal = async (id: string, forceStatus?: 'win' | 'loss') => {
-    try {
-      const res = await fetch('/api/signals/resolve', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ signalId: id, forceStatus }),
-      });
-      if (res.ok) {
-        await fetchSignalsHistory();
-      }
-    } catch (e) {
-      console.error('Error resolving signal:', e);
-    }
-  };
-
-  // Open Manual Trade
-  const handleOpenTrade = async (
-    direcao: 'COMPRAR' | 'VENDER',
-    valor: number,
-    stopLoss?: number,
-    takeProfit?: number
-  ) => {
-    try {
-      const res = await fetch('/api/trades/open', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          par: currentPar,
-          direcao,
-          valor,
-          stop_loss: stopLoss,
-          take_profit: takeProfit,
-        }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setActiveTrade(data.trade);
-        if (user) {
-          setUser({ ...user, tokens: data.userBalance });
-        }
-        return data.trade;
-      } else {
-        const errData = await res.json();
-        console.warn('Trade rejected by Risk Manager:', errData.error);
-        return null;
-      }
-    } catch (e) {
-      console.error('Error opening trade:', e);
-    }
-    return null;
-  };
-
-  // Settle Trade
-  const handleSettleTrade = async (tradeId: string) => {
-    try {
-      const res = await fetch('/api/trades/settle', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tradeId }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setActiveTrade(data.trade);
-        if (user) {
-          setUser({
-            ...user,
-            tokens: data.userBalance,
-            trades: data.userStats?.trades ?? user.trades + 1,
-            vitorias: data.userStats?.vitorias ?? user.vitorias,
-          });
-        }
-      }
-    } catch (e) {
-      console.error('Error settling trade:', e);
-    }
-  };
-
-  // Toggle Autotrade
-  const handleToggleAutotrade = async (enabled: boolean) => {
-    if (enabled && !user?.autotrade_confirmed) {
-      setIsRiskConfirmationOpen(true);
-      return;
-    }
-
-    await executeToggleAutotrade(enabled);
-  };
-
-  const executeToggleAutotrade = async (enabled: boolean, confirmed = true) => {
-    try {
-      const res = await fetch('/api/user/update', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          autotrade: enabled,
-          autotrade_confirmed: confirmed,
-        }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setUser(data.user);
-
-        if (enabled) {
-          // trigger immediate cycle
-          const tradeRes = await fetch('/api/trades/autotrade-cycle', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ par: currentPar }),
-          });
-          if (tradeRes.ok) {
-            const tradeData = await tradeRes.json();
-            setActiveTrade(tradeData.trade);
-            if (user) {
-              setUser({ ...user, autotrade: true, tokens: tradeData.userBalance, autotrade_confirmed: true });
-            }
-          }
-        }
-      }
-    } catch (e) {
-      console.error('Error updating autotrade:', e);
-    }
-  };
-
-  // Change Risk
-  const handleChangeRisk = async (risco: number) => {
-    try {
-      const res = await fetch('/api/user/update', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ risco }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setUser(data.user);
-      }
-    } catch (e) {
-      console.error('Error updating risk:', e);
-    }
-  };
-
-  // Claim Deposit Bonus (+5 tokens)
-  const handleClaimDepositBonus = async () => {
-    try {
-      const res = await fetch('/api/user/update', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ claimDepositBonus: true }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setUser(data.user);
-      }
-    } catch (e) {
-      console.error('Error claiming deposit bonus:', e);
-    }
-  };
-
-  // Claim Invite (+5 tokens)
-  const handleClaimInvite = async () => {
-    try {
-      const res = await fetch('/api/user/invite', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (user) {
-          setUser({ ...user, tokens: data.tokens });
-        }
-      }
-    } catch (e) {
-      console.error('Error claiming invite:', e);
-    }
-  };
-
-  // Update Email
-  const handleUpdateEmail = async (email: string) => {
-    try {
-      const res = await fetch('/api/user/update', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setUser(data.user);
-      }
-    } catch (e) {
-      console.error('Error updating email:', e);
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
-      <Navbar
-        user={user}
-        activeView={activeView}
-        onToggleView={(view) => setActiveView(view)}
-        onOpenAccount={() => setIsAccountOpen(true)}
-        onOpenDeposit={() => setIsDepositOpen(true)}
-        onOpenTelegramSim={() => setIsTelegramOpen(!isTelegramOpen)}
-        onOpenRiskManager={() => setIsRiskManagerOpen(true)}
-        onOpenExecutionEngine={() => setIsExecutionEngineOpen(true)}
-        onOpenTradeMonitor={() => setIsTradeMonitorOpen(true)}
-        onOpenPaperTrading={() => setIsPaperTradingOpen(true)}
-        onOpenMultiUser={() => setIsMultiUserOpen(true)}
-        onOpenDatabase={() => setIsDatabaseOpen(true)}
-        onOpenDaemon247={() => setIsDaemonOpen(true)}
-        onOpenTestRunner={() => setIsTestRunnerOpen(true)}
-        isTelegramOpen={isTelegramOpen}
-        refreshing={refreshing}
-        onRefresh={handleRefresh}
-        activeTradesCount={activeTradesCount}
-      />
-
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 lg:p-6 space-y-6">
-        {/* Ticker Row */}
-        <LivePriceTicker
-          currentPar={currentPar}
-          onSelectPar={(par) => setCurrentPar(par)}
-          tickerData={tickerData}
-        />
-
-        {activeView === 'analytics' ? (
-          /* FASE 14 — Isolated User History & Performance Analytics */
-          <UserAnalyticsDashboard
-            user={user || {
-              email: 'trader.demo@tradeao.io',
-              tokens: 100,
-              chat_id: '7886049873',
-              registro: new Date().toISOString(),
-              trades: 13,
-              vitorias: 9,
-              autotrade: false,
-              risco: 0.25,
-              clicou_depositar: false,
-              convidado_por: null,
-            }}
-            onRefreshUser={fetchUser}
-          />
-        ) : (
-          /* Core Trading & Terminal Grid */
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-            {/* Main Chart Column (7 cols) */}
-            <div className="lg:col-span-7 flex flex-col space-y-6">
-              <div className="flex-1 min-h-[380px]">
-                <CandleChart
-                  candles={candles}
-                  indicators={indicators}
-                  par={currentPar}
-                  interval={interval}
-                  onIntervalChange={(newInt) => setInterval(newInt)}
-                />
-              </div>
-
-              {/* Signals Terminal */}
-              <div className="flex-1 min-h-[320px]">
-                <SignalsTerminal
-                  signals={signals}
-                  stats={signalStats}
-                  generating={generatingSignal}
-                  onGenerateSignal={handleGenerateSignal}
-                  onResolveSignal={handleResolveSignal}
-                />
-              </div>
-            </div>
-
-            {/* Trading Controls Column (5 cols) */}
-            <div className="lg:col-span-5 flex flex-col space-y-6">
-              <TradingConsole
-                user={user}
-                currentPar={currentPar}
-                ticker={tickerData[currentPar] || null}
-                onOpenTrade={handleOpenTrade}
-                onSettleTrade={handleSettleTrade}
-                onToggleAutotrade={handleToggleAutotrade}
-                onChangeRisk={handleChangeRisk}
-                activeTrade={activeTrade}
-                onOpenRiskManager={() => setIsRiskManagerOpen(true)}
-              />
-
-              {/* Quick Analytics & Telegram Banner */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="bg-gradient-to-r from-emerald-950/40 to-slate-900 border border-emerald-500/20 rounded-2xl p-4 flex flex-col justify-between">
-                  <div>
-                    <span className="text-xs font-bold text-emerald-300 block">FASE 14 • Analytics</span>
-                    <span className="text-[11px] text-slate-400">
-                      Histórico individual e estatísticas por usuário.
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => setActiveView('analytics')}
-                    className="mt-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold px-3 py-2 rounded-xl transition-all shadow-md shadow-emerald-500/20 cursor-pointer text-center"
-                  >
-                    Ver Analytics Completo
-                  </button>
-                </div>
-
-                <div className="bg-gradient-to-r from-sky-950/40 to-slate-900 border border-sky-500/20 rounded-2xl p-4 flex flex-col justify-between">
-                  <div>
-                    <span className="text-xs font-bold text-sky-300 block">Telegram Bot Integrado</span>
-                    <span className="text-[11px] text-slate-400">
-                      Use o comando /historico e /stats no bot.
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => setIsTelegramOpen(true)}
-                    className="mt-3 bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold px-3 py-2 rounded-xl transition-all shadow-md shadow-sky-600/20 cursor-pointer text-center"
-                  >
-                    Abrir Bot
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </main>
-
-      {/* Telegram Bot Simulator Drawer */}
-      <TelegramBotSimulator
-        user={user}
-        ticker={tickerData[currentPar] || null}
-        isOpen={isTelegramOpen}
-        onClose={() => setIsTelegramOpen(false)}
-        onRefreshUser={fetchUser}
-        onOpenDepositModal={() => setIsDepositOpen(true)}
-        onGenerateSignal={handleGenerateSignal}
-      />
-
-      {/* Account Info Modal */}
-      <AccountModal
-        isOpen={isAccountOpen}
-        onClose={() => setIsAccountOpen(false)}
-        user={user}
-        onClaimInvite={handleClaimInvite}
-        onUpdateEmail={handleUpdateEmail}
-      />
-
-      {/* Affiliate / Deposit Real Modal */}
-      <AffiliateBanner
-        isOpen={isDepositOpen}
-        onClose={() => setIsDepositOpen(false)}
-        user={user}
-        onClaimBonus={handleClaimDepositBonus}
-      />
-
-      {/* Trade AO Risk Manager Modal (Fase 9) */}
-      <RiskManagerModal
-        isOpen={isRiskManagerOpen}
-        onClose={() => setIsRiskManagerOpen(false)}
-        userBalance={user?.tokens || 100}
-        currentPar={currentPar}
-        currentPrice={tickerData[currentPar]?.price || 96000}
-        onRefreshRiskStatus={fetchUser}
-      />
-
-      {/* Risk Confirmation Modal Before First Activation (Fase 11) */}
-      <RiskConfirmationModal
-        isOpen={isRiskConfirmationOpen}
-        onClose={() => setIsRiskConfirmationOpen(false)}
-        onConfirm={async () => {
-          await executeToggleAutotrade(true, true);
-        }}
-        riskPerTrade={1.0}
-        maxDailyLoss={3.0}
-      />
-
-      {/* Trade AO Execution Engine Modal (FASE 12) */}
-      <ExecutionEngineModal
-        isOpen={isExecutionEngineOpen}
-        onClose={() => setIsExecutionEngineOpen(false)}
-        userBalance={user?.tokens || 100}
-        currentPar={currentPar}
-        onTriggerAutotrade={fetchUser}
-      />
-
-      {/* Trade AO Trade Monitor Modal (FASE 13) */}
-      <TradeMonitorModal
-        isOpen={isTradeMonitorOpen}
-        onClose={() => setIsTradeMonitorOpen(false)}
-        userBalance={user?.tokens || 100}
-        currentPar={currentPar}
-        onRefresh={fetchUser}
-      />
-
-      {/* Trade AO Paper Trading & Testnet Modal (FASE 15) */}
-      <PaperTradingModal
-        isOpen={isPaperTradingOpen}
-        onClose={() => setIsPaperTradingOpen(false)}
-        userId={user?.chat_id || activeUserId}
-        currentPar={currentPar}
-        onRefreshAll={handleRefresh}
-      />
-
-      {/* Trade AO Multiuser & Isolation Manager (FASE 16) */}
-      <MultiUserManagerModal
-        isOpen={isMultiUserOpen}
-        onClose={() => setIsMultiUserOpen(false)}
-        activeUserId={activeUserId}
-        onSwitchUser={(newUid) => {
-          setActiveUserId(newUid);
-          localStorage.setItem('tradeao_active_user', newUid);
-        }}
-        onRefreshParent={handleRefresh}
-      />
-
-      {/* Trade AO Database & Persistence Inspector (FASE 17) */}
-      <DatabasePersistenceModal
-        isOpen={isDatabaseOpen}
-        onClose={() => setIsDatabaseOpen(false)}
-        onRefreshParent={handleRefresh}
-      />
-
-      {/* Trade AO 24/7 Daemon & Resilience Inspector (FASE 18) */}
-      <Daemon247Modal
-        isOpen={isDaemonOpen}
-        onClose={() => setIsDaemonOpen(false)}
-        onRefreshAppState={handleRefresh}
-      />
-
-      {/* Trade AO Quality, Test Automation & Structured Logs Modal (FASE 20) */}
-      <TestRunnerModal
-        isOpen={isTestRunnerOpen}
-        onClose={() => setIsTestRunnerOpen(false)}
-      />
-    </div>
-  );
+      {(page === 'login' || page === 'register') && <AuthCard mode={page} setPage={setPage} />}
+      {page === 'dashboard' && <Dashboard />}
+      {page === 'signals' && <section className="space-y-6"><Title title="Signal Center" subtitle="Sinais ao vivo atualizados por candle em 15m, 1h e 4h."/><label className="block max-w-xs text-sm text-slate-300">Score mínimo: {minScore}<input className="mt-2 w-full accent-emerald-400" type="range" min="50" max="95" value={minScore} onChange={(e) => setMinScore(Number(e.target.value))}/></label><SignalsTable rows={visibleSignals} /></section>}
+      {page === 'trading' && <section className="space-y-6"><Title title="Trading Manual" subtitle="Abre LONG/SHORT com confirmação de SL, TP, montante e risco calculado."/><SignalsTable rows={signals} trading /></section>}
+      {page === 'autotrade' && <Autotrade />}
+      {page === 'history' && <History />}
+      {page === 'settings' && <Settings />}
+      {page === 'billing' && <PlanGrid setPage={setPage} />}
+      {page === 'admin' && <Admin />}
+    </main>
+  </div>;
 }
+
+function Title({ title, subtitle }: { title: string; subtitle: string }) { return <div><h2 className="text-3xl font-black">{title}</h2><p className="mt-2 text-slate-400">{subtitle}</p></div>; }
+function AuthCard({ mode, setPage }: { mode: 'login' | 'register'; setPage: (p: Page) => void }) { return <div className="mx-auto max-w-md rounded-3xl border border-white/10 bg-white/[0.04] p-8"><Title title={mode === 'login' ? 'Entrar' : 'Criar conta'} subtitle="Access token de 15 min e refresh token de 7 dias no backend."/><input placeholder="Email" className="mt-6 w-full rounded-xl border border-white/10 bg-slate-900 p-3"/><input placeholder="Password" type="password" className="mt-3 w-full rounded-xl border border-white/10 bg-slate-900 p-3"/><div className="mt-5"><Button onClick={() => setPage('dashboard')}>{mode === 'login' ? 'Entrar' : 'Começar trial'}</Button></div></div>; }
+function Dashboard() { return <section className="space-y-6"><Title title="Dashboard Principal" subtitle="Equity curve, PnL, posições abertas e saldo Binance em USDT."/><div className="grid gap-4 md:grid-cols-5"><Kpi label="PnL diário" value="128 USDT"/><Kpi label="PnL mensal" value="1.240 USDT"/><Kpi label="Win rate" value="68%"/><Kpi label="Profit factor" value="2.4"/><Kpi label="Saldo Binance" value={money(2500)}/></div><div className="grid gap-5 lg:grid-cols-[1.6fr_.8fr]"><ChartCard/><div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5"><h3 className="mb-4 font-bold">Trades abertas</h3>{signals.slice(0,2).map((s) => <div className="mb-3 rounded-xl bg-slate-900 p-4" key={s.pair}><b>{s.pair}</b><p className="text-sm text-slate-400">{s.side} • Entrada {s.entry} • SL {s.sl} • TP {s.tp}</p></div>)}</div></div></section>; }
+function ChartCard() { return <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5"><ResponsiveContainer width="100%" height={320}><AreaChart data={equity}><CartesianGrid stroke="#1e293b"/><XAxis dataKey="day" stroke="#94a3b8"/><YAxis stroke="#94a3b8"/><Tooltip/><Area type="monotone" dataKey="value" stroke="#34d399" fill="#064e3b"/></AreaChart></ResponsiveContainer></div>; }
+function SignalsTable({ rows, trading = false }: { rows: typeof signals; trading?: boolean }) { return <div className="overflow-x-auto rounded-2xl border border-white/10"><table className="w-full min-w-[760px] text-left"><thead className="bg-white/5 text-slate-400"><tr>{['Par','Direção','Entrada','SL','TP','Score','Timeframe','Ação'].map(h => <th className="p-4" key={h}>{h}</th>)}</tr></thead><tbody>{rows.map((s) => <tr className="border-t border-white/10" key={s.pair}><td className="p-4 font-bold">{s.pair}</td><td className={s.side === 'LONG' ? 'p-4 text-emerald-300' : 'p-4 text-rose-300'}>{s.side}</td><td className="p-4">{s.entry}</td><td className="p-4">{s.sl}</td><td className="p-4">{s.tp}</td><td className="p-4"><span className="rounded-full bg-emerald-400/10 px-3 py-1 text-emerald-300">{s.score}/100</span></td><td className="p-4">{s.tf}</td><td className="p-4"><Button soft>{trading ? `ABRIR ${s.side}` : 'Detalhes'}</Button></td></tr>)}</tbody></table></div>; }
+function PlanGrid({ setPage }: { setPage: (p: Page) => void }) { return <section><Title title="Planos e Preços" subtitle="Pagamentos em Kwanza via PAGA: Multicaixa Express, QR Code, USSD, Visa/Mastercard e transferência bancária manual."/><div className="mt-6 grid gap-4 md:grid-cols-4">{plans.map((plan) => <div key={plan.name} className={`rounded-3xl border p-6 ${plan.featured ? 'border-emerald-400 bg-emerald-400/10' : 'border-white/10 bg-white/[0.04]'}`}><h3 className="text-xl font-bold">{plan.name}</h3><p className="mt-3 text-2xl font-black text-emerald-300">{plan.price}</p><ul className="my-5 space-y-2 text-sm text-slate-300">{plan.features.map(f => <li key={f}>✓ {f}</li>)}</ul><Button onClick={() => setPage('register')}>{plan.cta}</Button></div>)}</div></section>; }
+function Autotrade() { return <section className="space-y-6"><Title title="Autotrading" subtitle="Configura pares, score mínimo default 70/100 e risco default 1%."/><div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6"><label className="flex items-center gap-3"><input type="checkbox" className="accent-emerald-400"/> Ativar autotrading por par</label><div className="mt-4 grid gap-4 md:grid-cols-3"><Kpi label="Estado" value="Pausado" accent="text-amber-300"/><Kpi label="Reason" value="Paper default" accent="text-slate-100"/><Kpi label="Ordens automáticas" value="0"/></div></div></section>; }
+function History() { return <section className="space-y-6"><Title title="Histórico e Analytics" subtitle="Filtros por par, direção, resultado e data, com export CSV/PDF planeado."/><div className="grid gap-5 lg:grid-cols-2"><div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5"><ResponsiveContainer width="100%" height={260}><PieChart><Pie data={pnl} dataKey="value" nameKey="name" outerRadius={90}>{pnl.map((_, i) => <Cell key={i} fill={i ? '#fb7185' : '#34d399'} />)}</Pie><Tooltip/></PieChart></ResponsiveContainer></div><div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5"><ResponsiveContainer width="100%" height={260}><BarChart data={[{pair:'BTC',pnl:740},{pair:'ETH',pnl:320},{pair:'SOL',pnl:-90}]}><XAxis dataKey="pair" stroke="#94a3b8"/><YAxis stroke="#94a3b8"/><Tooltip/><Bar dataKey="pnl" fill="#34d399"/></BarChart></ResponsiveContainer></div></div></section>; }
+function Settings() { return <section className="space-y-6"><Title title="Definições e Binance" subtitle="API keys são encriptadas com AES-256-GCM, salt aleatória por utilizador e chave mestra obrigatória."/><div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6"><input placeholder="API Key" className="w-full rounded-xl border border-white/10 bg-slate-900 p-3"/><input placeholder="API Secret" type="password" className="mt-3 w-full rounded-xl border border-white/10 bg-slate-900 p-3"/><select className="mt-3 w-full rounded-xl border border-white/10 bg-slate-900 p-3"><option>Testnet</option><option>Live</option></select><div className="mt-5"><Button>Conectar Binance</Button></div></div></section>; }
+function Admin() { return <section className="space-y-6"><Title title="Admin Panel" subtitle="Utilizadores, receita, subscrições, logs e refresh de sinais."/><div className="grid gap-4 md:grid-cols-3"><Kpi label="MRR" value="0 Kz"/><Kpi label="Novos subscritores" value="0"/><Kpi label="Churn rate" value="0%"/></div></section>; }
