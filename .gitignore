@@ -4,16 +4,28 @@
 .env.*.local
 *.env
 
+# Runtime data must stay outside Git
+users.json
+user_trades.json
+secure_vault.json
+historico.json
+custom_signals.json
+storage/*.sqlite
+storage/*.sqlite-wal
+storage/*.sqlite-shm
+storage/secure_vault.json
+storage/risk_state.json
+storage/trading_mode.json
+storage/user_live_status.json
+
 # Logs
 *.log
 bot.log
 logs/
 *.pid
 *.lock
-*.sqlite-wal
-*.sqlite-shm
 
-# Python artifacts
+# Python artifacts kept only as legacy reference
 venv/
 .venv/
 env/

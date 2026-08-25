@@ -1,5 +1,5 @@
 {
-  "name": "trading-bot-signals",
+  "name": "trade-ao-saas",
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -7,7 +7,7 @@
     "dev": "tsx server.ts",
     "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
     "start": "node dist/server.cjs",
-    "test": "tsx -e \"import('./engine/test_runner.js').then(m => m.globalTestRunner.runAllTests()).then(r => console.log(JSON.stringify(r, null, 2)))\""
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@types/sql.js": "^1.4.11",
@@ -35,5 +35,6 @@
     "tsx": "^4.19.2",
     "typescript": "^5.7.3",
     "vite": "^6.1.0"
-  }
+  },
+  "description": "Trade AO SaaS web-only para trading cripto no mercado angolano"
 }
